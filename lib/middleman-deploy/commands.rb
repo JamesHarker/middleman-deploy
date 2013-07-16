@@ -49,6 +49,7 @@ activate :deploy do |deploy|
   deploy.path = "/srv/www/site"
   # clean is optional (default is false)
   deploy.clean = true
+  deploy.key_path = "/.ssh/key"
 end
 
 # To deploy to a remote branch via git (e.g. gh-pages on github):
@@ -111,10 +112,15 @@ EOF
         port = self.deploy_options.port
         user = self.deploy_options.user
         path = self.deploy_options.path
+        key_path = self.deploy_options.key_path
 
         puts "## Deploying via rsync to #{user}@#{host}:#{path} port=#{port}"
 
-        command = "rsync -avze '" + "ssh -p #{port}" + "' #{self.inst.build_dir}/ #{user}@#{host}:#{path}"
+        if key_path
+          command = "rsync -avze '" + "ssh -p #{port} -i #{key_path} " + "' #{self.inst.build_dir}/ #{user}@#{host}:#{path}"
+        else
+          command = "rsync -avze '" + "ssh -p #{port}" + "' #{self.inst.build_dir}/ #{user}@#{host}:#{path}"
+        end
 
         if options.has_key? "clean"
           clean = options.clean
@@ -224,14 +230,14 @@ EOF
       def deploy_sftp
         require 'net/sftp'
         require 'ptools'
-      
+
         host = self.deploy_options.host
         user = self.deploy_options.user
         pass = self.deploy_options.password
         path = self.deploy_options.path
-      
+
         puts "## Deploying via sftp to #{user}@#{host}:#{path}"
-        
+
         Net::SFTP.start(host, user, :password => pass) do |sftp|
           sftp.mkdir(path)
           Dir.chdir(self.inst.build_dir) do
